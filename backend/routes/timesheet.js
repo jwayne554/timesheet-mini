@@ -2,28 +2,10 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const TimeEntry = require('../models/TimeEntry');
-const jwt = require('jsonwebtoken');
-const { validateTimeEntry, validatePayment, handleValidationErrors } = require('../middleware/validators');
 const Payment = require('../models/Payment');
+const { validateTimeEntry, validatePayment, handleValidationErrors } = require('../middleware/validators');
 
-function verifyToken(req, res, next) {
-  const bearerHeader = req.headers['authorization'];
-  if (!bearerHeader) return res.status(403).json({ message: 'No token provided' });
-  
-  const bearer = bearerHeader.split(' ');
-  const token = bearer[1];
-  
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      console.error('Token verification error:', err);
-      return res.status(401).json({ message: 'Failed to authenticate token' });
-    }
-    req.userId = decoded.id;
-    req.userRole = decoded.role;
-    next();
-  });
-}
-
+// Middleware to check if user is a manager
 function isManager(req, res, next) {
   if (req.userRole !== 'manager') {
     return res.status(403).json({ message: 'Access denied. Manager role required.' });
@@ -31,85 +13,58 @@ function isManager(req, res, next) {
   next();
 }
 
-async function ensureUser(req, res, next) {
-  const { telegramId, firstName, lastName } = req.body;
-  let user = await User.findOne({ telegramId });
-  if (!user) {
-    user = new User({ telegramId, firstName, lastName });
-    await user.save();
-  }
-  req.user = user;
-  next();
-}
-
-router.post('/authenticate', async (req, res) => {
-  try {
-    const { telegramId, firstName, lastName } = req.body;
-    let user = await User.findOne({ telegramId });
-    if (!user) {
-      user = new User({ telegramId, firstName, lastName });
-      await user.save();
+// Clock In
+router.post('/clock-in', validateTimeEntry, handleValidationErrors, async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const existingEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
+      if (existingEntry) {
+        return res.status(400).json({ message: 'You are already clocked in' });
+      }
+  
+      const timeEntry = new TimeEntry({
+        user: user._id,
+        clockIn: new Date(),
+      });
+      await timeEntry.save();
+  
+      res.status(201).json({ message: 'Clocked in successfully', timeEntry });
+    } catch (error) {
+      console.error('Clock-in error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
     }
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, role: user.role });
-  } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(500).json({ message: 'Error during authentication', error: error.message });
-  }
-});
+  });
 
-router.post('/clock-in', verifyToken, validateTimeEntry, handleValidationErrors, async (req, res) => {
-  try {
-    const { telegramId, firstName, lastName } = req.body;
-
-    let user = await User.findOne({ telegramId });
-    if (!user) {
-      user = new User({ telegramId, firstName, lastName });
-      await user.save();
+// Clock Out
+router.post('/clock-out', async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const timeEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
+      if (!timeEntry) {
+        return res.status(400).json({ message: 'No active clock-in found' });
+      }
+  
+      timeEntry.clockOut = new Date();
+      timeEntry.duration = (timeEntry.clockOut - timeEntry.clockIn) / 1000; // Duration in seconds
+      await timeEntry.save();
+  
+      res.json({ message: 'Clocked out successfully', timeEntry });
+    } catch (error) {
+      console.error('Clock-out error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
     }
+  });
 
-    const existingEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
-    if (existingEntry) {
-      return res.status(400).json({ message: 'You are already clocked in' });
-    }
-
-    const timeEntry = new TimeEntry({
-      user: user._id,
-      clockIn: new Date(),
-    });
-    await timeEntry.save();
-
-    res.status(201).json({ message: 'Clocked in successfully', timeEntry });
-  } catch (error) {
-    console.error('Clock-in error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-router.post('/clock-out', verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const timeEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
-    if (!timeEntry) {
-      return res.status(400).json({ message: 'No active clock-in found' });
-    }
-
-    timeEntry.clockOut = new Date();
-    timeEntry.duration = (timeEntry.clockOut - timeEntry.clockIn) / 1000; // Duration in seconds
-    await timeEntry.save();
-
-    res.json({ message: 'Clocked out successfully', timeEntry });
-  } catch (error) {
-    console.error('Clock-out error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-router.get('/pending-entries', verifyToken, isManager, async (req, res) => {
+// Get Pending Entries (Manager Only)
+router.get('/pending-entries', isManager, async (req, res) => {
   try {
     const pendingEntries = await TimeEntry.find({ status: 'pending' }).populate('user', 'firstName lastName');
     res.json(pendingEntries);
@@ -119,7 +74,8 @@ router.get('/pending-entries', verifyToken, isManager, async (req, res) => {
   }
 });
 
-router.post('/review-entry', verifyToken, isManager, async (req, res) => {
+// Review Time Entry (Manager Only)
+router.post('/review-entry', isManager, async (req, res) => {
   const { entryId, status } = req.body;
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
@@ -136,7 +92,8 @@ router.post('/review-entry', verifyToken, isManager, async (req, res) => {
   }
 });
 
-router.post('/process-payment', verifyToken, isManager, validatePayment, handleValidationErrors, async (req, res) => {
+// Process Payment (Manager Only)
+router.post('/process-payment', isManager, validatePayment, handleValidationErrors, async (req, res) => {
   const { entryId, amount } = req.body;
   try {
     const timeEntry = await TimeEntry.findById(entryId);
@@ -157,6 +114,30 @@ router.post('/process-payment', verifyToken, isManager, validatePayment, handleV
   } catch (error) {
     console.error('Error processing payment:', error);
     res.status(500).json({ message: 'Error processing payment', error: error.message });
+  }
+});
+
+// Get User's Time Entries
+router.get('/my-entries', async (req, res) => {
+  try {
+    const entries = await TimeEntry.find({ user: req.userId }).sort({ clockIn: -1 });
+    res.json(entries);
+  } catch (error) {
+    console.error('Error fetching user entries:', error);
+    res.status(500).json({ message: 'Error fetching time entries', error: error.message });
+  }
+});
+
+// Get User's Total Hours
+router.get('/total-hours', async (req, res) => {
+  try {
+    const entries = await TimeEntry.find({ user: req.userId, status: 'approved' });
+    const totalSeconds = entries.reduce((total, entry) => total + (entry.duration || 0), 0);
+    const totalHours = totalSeconds / 3600;
+    res.json({ totalHours: totalHours.toFixed(2) });
+  } catch (error) {
+    console.error('Error calculating total hours:', error);
+    res.status(500).json({ message: 'Error calculating total hours', error: error.message });
   }
 });
 

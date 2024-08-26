@@ -6,12 +6,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingEntriesList = document.getElementById('pending-entries');
     const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/timesheet';
 
-    let token = localStorage.getItem('token');
     let userRole = localStorage.getItem('userRole');
     let isClockedIn = false;
 
     if (tg) {
         tg.expand();
+    }
+
+    async function refreshToken() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/refresh-token`, {
+                method: 'POST',
+                credentials: 'include', // This will send the HTTP-only cookie
+            });
+            if (!response.ok) throw new Error('Token refresh failed');
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            return data.token;
+        } catch (error) {
+            console.error('Error refreshing token:', error);
+            showError('Authentication failed. Please try again.');
+            // Redirect to login or handle authentication failure
+            return null;
+        }
+    }
+
+    async function fetchWithAuth(url, options = {}) {
+        let token = localStorage.getItem('token');
+        if (!token) {
+            token = await refreshToken();
+            if (!token) return null; // Handle authentication failure
+        }
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
+        const response = await fetch(url, options);
+        if (response.status === 401) {
+            // Token might be expired, try to refresh
+            token = await refreshToken();
+            if (token) {
+                // Retry the original request with the new token
+                options.headers['Authorization'] = `Bearer ${token}`;
+                return fetch(url, options);
+            }
+        }
+        return response;
     }
 
     async function authenticate() {
@@ -39,32 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Authentication failed');
             }
             const data = await response.json();
-            token = data.token;
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userRole', data.role);
             userRole = data.role;
-            localStorage.setItem('token', token);
-            localStorage.setItem('userRole', userRole);
+            return data.token;
         } catch (error) {
             console.error('Authentication error:', error);
             showError('Authentication failed. Please try again.');
+            return null;
         }
     }
 
-    async function fetchWithAuth(url, options = {}) {
-        if (!token) {
-            await authenticate();
-        }
-        options.headers = {
-            ...options.headers,
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        };
-        return fetch(url, options);
-    }
-
-    async function clockInOut() {
-        console.log('clockInOut function called');
-        const endpoint = isClockedIn ? 'clock-out' : 'clock-in';
-        
+    async function clockIn() {
         let userData;
         if (tg && tg.initDataUnsafe.user) {
             userData = tg.initDataUnsafe.user;
@@ -73,8 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            console.log('Sending request to:', `${API_BASE_URL}/${endpoint}`);
-            const response = await fetchWithAuth(`${API_BASE_URL}/${endpoint}`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/clock-in`, {
                 method: 'POST',
                 body: JSON.stringify({
                     telegramId: userData.id,
@@ -82,28 +108,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastName: userData.last_name,
                 }),
             });
-
-            console.log('Response status:', response.status);
+            if (!response) throw new Error('Network error');
             const data = await response.json();
-            console.log('Response data:', data);
-
-            if (!response.ok) {
-                throw new Error(data.message || 'An error occurred');
-            }
-
-            console.log(data.message);
-            isClockedIn = !isClockedIn;
-            clockInOutBtn.textContent = isClockedIn ? 'Clock Out' : 'Clock In';
-            showMessage(data.message);
-
-            if (isClockedIn) {
-                window.location.href = 'timer.html';
-            }
+            if (!response.ok) throw new Error(data.message || 'Clock-in failed');
+            
+            localStorage.setItem('startTime', data.timeEntry.clockIn);
+            showMessage('Clocked in successfully');
+            window.location.href = 'timer.html';
         } catch (error) {
-            console.error('Error:', error);
-            showError('An error occurred. Please try again.');
+            console.error('Clock-in error:', error);
+            showError(error.message);
         }
-    }   
+    }
+
+    async function clockOut() {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/clock-out`, {
+                method: 'POST',
+            });
+            if (!response) throw new Error('Network error');
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Clock-out failed');
+            
+            localStorage.removeItem('startTime');
+            showMessage('Clocked out successfully');
+            isClockedIn = false;
+            updateClockButton();
+        } catch (error) {
+            console.error('Clock-out error:', error);
+            showError(error.message);
+        }
+    }
 
     async function reviewEntry(entryId, status) {
         try {
@@ -111,13 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 body: JSON.stringify({ entryId, status }),
             });
+            if (!response) throw new Error('Network error');
             const data = await response.json();
-            console.log(data.message);
-            fetchPendingEntries();
+            if (!response.ok) throw new Error(data.message || 'Review failed');
+            
             showMessage(data.message);
+            fetchPendingEntries();
         } catch (error) {
             console.error('Error reviewing entry:', error);
-            showError('Error reviewing entry');
+            showError(error.message);
         }
     }
 
@@ -130,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             managerView.style.display = 'none';
             clockInOutBtn.style.display = 'block';
         }
+        updateClockButton();
     }
 
     function updateUserInfo() {
@@ -139,6 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
             name = `${first_name} ${last_name || ''}`;
         }
         userInfo.textContent = `Welcome, ${name}`;
+    }
+
+    function updateClockButton() {
+        clockInOutBtn.textContent = isClockedIn ? 'Clock Out' : 'Clock In';
     }
 
     async function processPayment(entryId) {
@@ -153,16 +195,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 body: JSON.stringify({ entryId, amount }),
             });
+            if (!response) throw new Error('Network error');
             const data = await response.json();
-            if (response.ok) {
-                showMessage(data.message);
-                fetchPendingEntries();
-            } else {
-                showError(data.message || 'Error processing payment');
-            }
+            if (!response.ok) throw new Error(data.message || 'Payment processing failed');
+            
+            showMessage(data.message);
+            fetchPendingEntries();
         } catch (error) {
             console.error('Error processing payment:', error);
-            showError('An error occurred while processing the payment');
+            showError(error.message);
         }
     }
       
@@ -187,43 +228,68 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchPendingEntries() {
         try {
             const response = await fetchWithAuth(`${API_BASE_URL}/pending-entries`);
+            if (!response) throw new Error('Network error');
+            if (!response.ok) throw new Error('Failed to fetch pending entries');
             const entries = await response.json();
-            pendingEntriesList.innerHTML = entries.map(entry => `
-                <li>
-                    ${entry.user.firstName} ${entry.user.lastName} - 
-                    ${new Date(entry.clockIn).toLocaleString()} to 
-                    ${entry.clockOut ? new Date(entry.clockOut).toLocaleString() : 'Not clocked out'}
-                    <div class="entry-actions">
-                        <button class="approve-btn" onclick="reviewEntry('${entry._id}', 'approved')">Approve</button>
-                        <button class="reject-btn" onclick="reviewEntry('${entry._id}', 'rejected')">Reject</button>
-                    </div>
-                    <div class="payment-input">
-                        <input type="number" id="payment-amount-${entry._id}" placeholder="Payment amount">
-                        <button onclick="processPayment('${entry._id}')">Process Payment</button>
-                    </div>
-                </li>
-            `).join('');
+            renderPendingEntries(entries);
         } catch (error) {
             console.error('Error fetching pending entries:', error);
             showError('Error fetching pending entries');
         }
     }
 
-    async function init() {
-        updateUserInfo();
-        if (!token) {
-            await authenticate();
-        }
-        updateView();
-        console.log('Token:', token);
+    function renderPendingEntries(entries) {
+        pendingEntriesList.innerHTML = entries.map(entry => `
+            <li>
+                ${entry.user.firstName} ${entry.user.lastName} - 
+                ${new Date(entry.clockIn).toLocaleString()} to 
+                ${entry.clockOut ? new Date(entry.clockOut).toLocaleString() : 'Not clocked out'}
+                <div class="entry-actions">
+                    <button class="approve-btn" onclick="reviewEntry('${entry._id}', 'approved')">Approve</button>
+                    <button class="reject-btn" onclick="reviewEntry('${entry._id}', 'rejected')">Reject</button>
+                </div>
+                <div class="payment-input">
+                    <input type="number" id="payment-amount-${entry._id}" placeholder="Payment amount">
+                    <button onclick="processPayment('${entry._id}')">Process Payment</button>
+                </div>
+            </li>
+        `).join('');
     }
 
-    clockInOutBtn.addEventListener('click', () => {
-        console.log('Button clicked!');
-        clockInOut();
+    async function init() {
+        updateUserInfo();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            try {
+                const newToken = await authenticate();
+                if (!newToken) {
+                    showError('Authentication failed. Please try again.');
+                    return; // Exit early if authentication fails
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showError('Authentication failed. Please try again.');
+                return; // Exit early if authentication fails
+            }
+        }
+        isClockedIn = !!localStorage.getItem('startTime');
+        updateView();
+    }
+
+    clockInOutBtn.addEventListener('click', async () => {
+        if (isClockedIn) {
+            await clockOut();
+        } else {
+            await clockIn();
+        }
     });
 
     init();
+
+    // Set up polling for real-time updates of pending entries
+    if (userRole === 'manager') {
+        setInterval(fetchPendingEntries, 30000); // Fetch every 30 seconds
+    }
 
     // Expose functions globally for onclick handlers
     window.reviewEntry = reviewEntry;
