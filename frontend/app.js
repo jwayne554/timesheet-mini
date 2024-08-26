@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastName: userData.last_name,
                 }),
             });
+            
     
             console.log('Response status:', response.status);
             const data = await response.json();
