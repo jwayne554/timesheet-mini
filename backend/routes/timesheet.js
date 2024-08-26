@@ -63,34 +63,59 @@ router.post('/set-role', async (req, res) => {
   });
   
 // Clock In
-router.post('/clock-in', validateTimeEntry, handleValidationErrors, verifyToken, async (req, res) => {
+router.post('/clock-in', validateTimeEntry, handleValidationErrors, async (req, res) => {
     try {
-    const timeEntry = new TimeEntry({
-      user: req.user._id,
-      clockIn: new Date(),
-    });
-    await timeEntry.save();
-    res.status(201).json({ message: 'Clocked in successfully', timeEntry });
-  } catch (error) {
-    res.status(500).json({ message: 'Error clocking in', error: error.message });
-  }
+        const { telegramId, firstName, lastName } = req.body;
+
+        let user = await User.findOne({ telegramId });
+        if (!user) {
+            user = new User({ telegramId, firstName, lastName });
+            await user.save();
+        }
+
+        const existingEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
+        if (existingEntry) {
+            return res.status(400).json({ message: 'You are already clocked in' });
+        }
+
+        const timeEntry = new TimeEntry({
+            user: user._id,
+            clockIn: new Date(),
+        });
+        await timeEntry.save();
+
+        res.status(201).json({ message: 'Clocked in successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
-// Clock Out
-router.post('/clock-out', validateTimeEntry, handleValidationErrors, verifyToken, async (req, res) => {
+router.post('/clock-out', async (req, res) => {
     try {
-    const lastEntry = await TimeEntry.findOne({ user: req.user._id, clockOut: null }).sort('-clockIn');
-    if (!lastEntry) {
-      return res.status(400).json({ message: 'No active clock-in found' });
+        const { startTime, endTime } = req.body;
+        const user = await User.findOne({ telegramId: req.user.telegramId });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const timeEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
+        if (!timeEntry) {
+            return res.status(400).json({ message: 'No active clock-in found' });
+        }
+
+        timeEntry.clockOut = new Date(endTime);
+        timeEntry.duration = (endTime - startTime) / 1000; // Duration in seconds
+        await timeEntry.save();
+
+        res.json({ message: 'Clocked out successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
-    lastEntry.clockOut = new Date();
-    lastEntry.duration = (lastEntry.clockOut - lastEntry.clockIn) / 1000 / 60; // Duration in minutes
-    await lastEntry.save();
-    res.json({ message: 'Clocked out successfully', timeEntry: lastEntry });
-  } catch (error) {
-    res.status(500).json({ message: 'Error clocking out', error: error.message });
-  }
 });
+
 // Authentication route
 router.post('/authenticate', async (req, res) => {
     try {
