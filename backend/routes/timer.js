@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInfo = document.getElementById('user-info');
     const timerDisplay = document.getElementById('timer');
     const clockOutBtn = document.getElementById('clock-out-btn');
-    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/';
+    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/timesheet';
 
     let token = localStorage.getItem('token');
     let startTime = localStorage.getItem('startTime');
@@ -76,9 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchWithAuth(url, options = {}) {
+        if (!token) {
+            // Redirect to login or handle authentication
+            window.location.href = 'index.html';
+            return;
+        }
         options.headers = {
             ...options.headers,
-            'Authorization': token,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
         };
         return fetch(url, options);
