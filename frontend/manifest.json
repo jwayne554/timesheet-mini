@@ -1,0 +1,9 @@
+{
+    "name": "Telegram Timesheet App",
+    "short_name": "Timesheet",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0088cc",
+    "description": "A timesheet app for Telegram"
+  }
