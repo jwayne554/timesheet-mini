@@ -8,6 +8,8 @@ const app = express();
 const timesheetRoutes = require('./routes/timesheet');
 const authRoutes = require('./routes/auth');
 const PORT = process.env.PORT || 5001;
+const jwtSecret = process.env.JWT_SECRET;
+console.log('JWT Secret:', jwtSecret); // Temporary for debugging
 
 // Enhanced CORS configuration
 app.use(cors({
