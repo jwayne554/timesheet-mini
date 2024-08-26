@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clockInOutBtn = document.getElementById('clock-in-out');
     const managerView = document.getElementById('manager-view');
     const pendingEntriesList = document.getElementById('pending-entries');
-    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/';
+    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/timesheet';
 
     let token = localStorage.getItem('token');
     let userRole = localStorage.getItem('userRole');
