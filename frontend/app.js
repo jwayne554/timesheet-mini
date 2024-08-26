@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function clockInOut() {
         console.log('clockInOut function called');
-        const endpoint = isClockedIn ? 'clock-out' : 'clock-in';
         
         let userData;
         if (tg && tg.initDataUnsafe.user) {
@@ -68,10 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             userData = { id: 12345, first_name: 'Test', last_name: 'User' };
         }
-
+    
         try {
-            console.log('Sending request to:', `${API_BASE_URL}/${endpoint}`);
-            const response = await fetchWithAuth(`${API_BASE_URL}/${endpoint}`, {
+            console.log('Sending request to:', `${API_BASE_URL}/clock-in`);
+            const response = await fetchWithAuth(`${API_BASE_URL}/clock-in`, {
                 method: 'POST',
                 body: JSON.stringify({
                     telegramId: userData.id,
@@ -79,24 +78,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastName: userData.last_name,
                 }),
             });
-
+    
             console.log('Response status:', response.status);
             const data = await response.json();
             console.log('Response data:', data);
-
+    
             if (!response.ok) {
                 throw new Error(data.message || 'An error occurred');
             }
-
+    
             console.log(data.message);
-            isClockedIn = !isClockedIn;
-            clockInOutBtn.textContent = isClockedIn ? 'Clock Out' : 'Clock In';
             showMessage(data.message);
+            
+            // Redirect to the timer page
+            window.location.href = 'timer.html';
         } catch (error) {
             console.error('Error:', error);
             showError('An error occurred. Please try again.');
         }
-    }   
+    }
+    
 
     async function reviewEntry(entryId, status) {
         try {
