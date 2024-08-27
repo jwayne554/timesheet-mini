@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchTimesheets() {
         try {
-            const response = await fetch('/api/admin/timesheets', {
+            const response = await fetch('https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/admin/timesheets', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
             });
 
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTimesheets(timesheets);
         } catch (error) {
             console.error('Error fetching timesheets:', error);
+            timesheetsList.innerHTML = '<p>Error loading timesheets. Please try again later.</p>';
         }
     }
 
@@ -24,23 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>User: ${timesheet.user.firstName} ${timesheet.user.lastName}</p>
                 <p>Clock In: ${new Date(timesheet.clockIn).toLocaleString()}</p>
                 <p>Clock Out: ${timesheet.clockOut ? new Date(timesheet.clockOut).toLocaleString() : 'Not clocked out'}</p>
-                <p>Duration: ${formatDuration(timesheet.duration)}</p>
                 <p>Status: ${timesheet.status}</p>
                 <button onclick="updateStatus('${timesheet._id}', 'approved')">Approve</button>
-                <button onclick="updateStatus('${timesheet._id}', 'declined')">Decline</button>
+                <button onclick="updateStatus('${timesheet._id}', 'rejected')">Reject</button>
             </div>
         `).join('');
     }
 
-    function formatDuration(duration) {
-        const hours = Math.floor(duration / 3600);
-        const minutes = Math.floor((duration % 3600) / 60);
-        return `${hours}h ${minutes}m`;
-    }
-
     async function updateStatus(timesheetId, status) {
         try {
-            const response = await fetch(`/api/admin/timesheet/${timesheetId}`, {
+            const response = await fetch(`https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/admin/timesheet/${timesheetId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -56,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchTimesheets(); // Refresh the list after updating
         } catch (error) {
             console.error('Error updating timesheet status:', error);
+            alert('Failed to update timesheet status. Please try again.');
         }
     }
 

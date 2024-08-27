@@ -5,7 +5,6 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-
 const app = express();
 const timesheetRoutes = require('./routes/timesheet');
 const authRoutes = require('./routes/auth');
@@ -13,6 +12,7 @@ const PORT = process.env.PORT || 5001;
 const jwtSecret = process.env.JWT_SECRET;
 console.log('JWT Secret:', jwtSecret); // Temporary for debugging
 const adminRoutes = require('./routes/admin');
+
 app.use('/api/admin', adminRoutes);
 // Enhanced CORS configuration
 app.use(cors({
@@ -23,6 +23,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -77,9 +78,10 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!', error: err.message });
-});
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+  });
+    
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${server.address().port}`);

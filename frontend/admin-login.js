@@ -8,22 +8,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('password').value;
       
         try {
-          const response = await fetch('/api/admin/login', {
+          const response = await fetch('https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/admin/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
           });
       
-          const data = await response.json();
-      
           if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Login failed');
           }
       
+          const data = await response.json();
           localStorage.setItem('adminToken', data.token);
           window.location.href = 'admin-dashboard.html';
         } catch (error) {
-          errorMessage.textContent = error.message;
+          console.error('Login error:', error);
+          document.getElementById('error-message').textContent = error.message;
         }
       });
 });
