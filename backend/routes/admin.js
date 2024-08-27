@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 
 // Admin login
 router.post('/login', async (req, res) => {
+    console.log('Login attempt received:', req.body); // Add this line for debugging
     try {
       const { username, password } = req.body;
       const admin = await Admin.findOne({ username });
@@ -20,10 +21,11 @@ router.post('/login', async (req, res) => {
       const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1d' });
       res.json({ token });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login', error: error.message });
-      }
-    });
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Server error during login', error: error.message });
+    }
+  });
+  
         
 
 // Get all timesheets
