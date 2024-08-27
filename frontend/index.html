@@ -5,22 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Timesheet App</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div id="app">
         <h1>Telegram Timesheet App</h1>
+        
         <div id="user-info"></div>
-        <div id="message"></div>
+        
+        <div id="message" class="message"></div>
         <div id="error-message" class="error-message"></div>
-        <div id="time-tracking">
+        
+        <div id="employee-view">
             <button id="clock-in-out">Clock In</button>
         </div>
+        
         <div id="manager-view" style="display: none;">
             <h2>Pending Time Entries</h2>
             <ul id="pending-entries"></ul>
         </div>
+        
+        <div id="loading" style="display: none;">Loading...</div>
     </div>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <script src="app.js"></script>
 </body>
 </html>

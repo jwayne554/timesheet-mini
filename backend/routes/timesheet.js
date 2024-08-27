@@ -14,7 +14,7 @@ function isManager(req, res, next) {
 }
 
 // Clock In
-router.post('/clock-in', validateTimeEntry, handleValidationErrors, async (req, res) => {
+router.post('/clock-in', async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) {
@@ -38,9 +38,9 @@ router.post('/clock-in', validateTimeEntry, handleValidationErrors, async (req, 
       res.status(500).json({ message: 'Server error', error: error.message });
     }
   });
-
-// Clock Out
-router.post('/clock-out', async (req, res) => {
+  
+  // Clock Out
+  router.post('/clock-out', async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) {

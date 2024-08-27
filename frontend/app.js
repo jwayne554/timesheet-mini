@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const clockInOutBtn = document.getElementById('clock-in-out');
     const managerView = document.getElementById('manager-view');
     const pendingEntriesList = document.getElementById('pending-entries');
-    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api/timesheet';
+    const messageElement = document.getElementById('message');
+    const errorElement = document.getElementById('error-message');
+    const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api';
 
     let userRole = localStorage.getItem('userRole');
     let isClockedIn = false;
@@ -13,29 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tg.expand();
     }
 
-    async function refreshToken() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/refresh-token`, {
-                method: 'POST',
-                credentials: 'include', // This will send the HTTP-only cookie
-            });
-            if (!response.ok) throw new Error('Token refresh failed');
-            const data = await response.json();
-            localStorage.setItem('token', data.token);
-            return data.token;
-        } catch (error) {
-            console.error('Error refreshing token:', error);
-            showError('Authentication failed. Please try again.');
-            // Redirect to login or handle authentication failure
-            return null;
-        }
-    }
-
     async function fetchWithAuth(url, options = {}) {
         let token = localStorage.getItem('token');
         if (!token) {
-            token = await refreshToken();
-            if (!token) return null; // Handle authentication failure
+            token = await authenticate();
+            if (!token) return null; // Authentication failed
         }
         options.headers = {
             ...options.headers,
@@ -50,39 +34,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Retry the original request with the new token
                 options.headers['Authorization'] = `Bearer ${token}`;
                 return fetch(url, options);
+            } else {
+                // Refresh failed, redirect to authentication
+                await authenticate();
+                return null;
             }
         }
         return response;
     }
 
     async function authenticate() {
-        let userData;
-        if (tg && tg.initDataUnsafe.user) {
-            userData = tg.initDataUnsafe.user;
-        } else {
-            console.log('Using mock data for testing');
-            userData = { id: 12345, first_name: 'Test', last_name: 'User' };
-        }
-
         try {
-            const response = await fetch(`${API_BASE_URL}/authenticate`, {
+            const response = await fetch(`${API_BASE_URL}/auth/authenticate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    telegramId: userData.id,
-                    firstName: userData.first_name,
-                    lastName: userData.last_name,
-                }),
+                body: JSON.stringify({ initData: tg.initData }),
             });
-            if (!response.ok) {
-                throw new Error('Authentication failed');
-            }
+
+            if (!response.ok) throw new Error('Authentication failed');
+            
             const data = await response.json();
             localStorage.setItem('token', data.token);
-            localStorage.setItem('userRole', data.role);
-            userRole = data.role;
+            localStorage.setItem('userId', data.user.id);
+            localStorage.setItem('userRole', data.user.role);
+            userRole = data.user.role;
+            updateUserInfo(data.user.name);
             return data.token;
         } catch (error) {
             console.error('Authentication error:', error);
@@ -91,29 +69,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function clockIn() {
-        let userData;
-        if (tg && tg.initDataUnsafe.user) {
-            userData = tg.initDataUnsafe.user;
-        } else {
-            userData = { id: 12345, first_name: 'Test', last_name: 'User' };
-        }
-
+    async function refreshToken() {
+        const token = localStorage.getItem('token');
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/clock-in`, {
+            const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
                 method: 'POST',
-                body: JSON.stringify({
-                    telegramId: userData.id,
-                    firstName: userData.first_name,
-                    lastName: userData.last_name,
-                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token }),
+            });
+
+            if (!response.ok) throw new Error('Token refresh failed');
+
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            return data.token;
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            localStorage.removeItem('token');
+            return null;
+        }
+    }
+
+    async function clockIn() {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/clock-in`, {
+                method: 'POST',
             });
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Clock-in failed');
-            
-            localStorage.setItem('startTime', data.timeEntry.clockIn);
+
             showMessage('Clocked in successfully');
+            isClockedIn = true;
+            updateClockButton();
+            // Redirect to timer page or start timer
             window.location.href = 'timer.html';
         } catch (error) {
             console.error('Clock-in error:', error);
@@ -123,14 +114,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function clockOut() {
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/clock-out`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/clock-out`, {
                 method: 'POST',
             });
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Clock-out failed');
-            
-            localStorage.removeItem('startTime');
+
             showMessage('Clocked out successfully');
             isClockedIn = false;
             updateClockButton();
@@ -142,14 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function reviewEntry(entryId, status) {
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/review-entry`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/review-entry`, {
                 method: 'POST',
                 body: JSON.stringify({ entryId, status }),
             });
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Review failed');
-            
+
             showMessage(data.message);
             fetchPendingEntries();
         } catch (error) {
@@ -170,12 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateClockButton();
     }
 
-    function updateUserInfo() {
-        let name = 'Test User';
-        if (tg && tg.initDataUnsafe.user) {
-            const { first_name, last_name } = tg.initDataUnsafe.user;
-            name = `${first_name} ${last_name || ''}`;
-        }
+    function updateUserInfo(name) {
         userInfo.textContent = `Welcome, ${name}`;
     }
 
@@ -191,14 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/process-payment`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/process-payment`, {
                 method: 'POST',
                 body: JSON.stringify({ entryId, amount }),
             });
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Payment processing failed');
-            
+
             showMessage(data.message);
             fetchPendingEntries();
         } catch (error) {
@@ -206,28 +191,28 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(error.message);
         }
     }
-      
+
     function showMessage(message) {
-        const messageElement = document.getElementById('message');
         messageElement.textContent = message;
         messageElement.style.color = '#28a745';
+        messageElement.style.display = 'block';
         setTimeout(() => {
-            messageElement.textContent = '';
+            messageElement.style.display = 'none';
         }, 3000);
     }
-      
+
     function showError(message) {
-        const errorElement = document.getElementById('error-message');
         errorElement.textContent = message;
         errorElement.style.color = '#dc3545';
+        errorElement.style.display = 'block';
         setTimeout(() => {
-            errorElement.textContent = '';
+            errorElement.style.display = 'none';
         }, 3000);
     }
-      
+
     async function fetchPendingEntries() {
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/pending-entries`);
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/pending-entries`);
             if (!response) throw new Error('Network error');
             if (!response.ok) throw new Error('Failed to fetch pending entries');
             const entries = await response.json();
@@ -257,22 +242,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function init() {
-        updateUserInfo();
         const token = localStorage.getItem('token');
         if (!token) {
-            try {
-                const newToken = await authenticate();
-                if (!newToken) {
-                    showError('Authentication failed. Please try again.');
-                    return; // Exit early if authentication fails
-                }
-            } catch (error) {
-                console.error('Authentication error:', error);
+            const newToken = await authenticate();
+            if (!newToken) {
                 showError('Authentication failed. Please try again.');
-                return; // Exit early if authentication fails
+                return;
             }
         }
-        isClockedIn = !!localStorage.getItem('startTime');
+        
+        // Check if user is clocked in
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/status`);
+            if (response && response.ok) {
+                const data = await response.json();
+                isClockedIn = data.isClockedIn;
+            }
+        } catch (error) {
+            console.error('Error fetching clock-in status:', error);
+        }
+
         updateView();
     }
 
