@@ -5,8 +5,8 @@ const TimeEntry = require('../models/TimeEntry');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Admin login
 router.post('/login', async (req, res) => {
-  console.log('Login attempt received:', req.body);
   try {
     const { username, password } = req.body;
     const admin = await Admin.findOne({ username });
@@ -18,14 +18,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    req.session.isAdminAuthenticated = true;
     res.json({ token, redirect: '/admin/dashboard' });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Get all timesheets
 router.get('/timesheets', async (req, res) => {
   try {
     const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
@@ -36,6 +36,7 @@ router.get('/timesheets', async (req, res) => {
   }
 });
 
+// Update timesheet status
 router.put('/timesheet/:id', async (req, res) => {
   try {
     const { id } = req.params;

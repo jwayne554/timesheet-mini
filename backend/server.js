@@ -61,23 +61,21 @@ function verifyToken(req, res, next) {
       next();
     });
   }
+  function verifyAdminToken(req, res, next) {
+    const bearerHeader = req.headers['authorization'];
+    if (!bearerHeader) return res.status(403).json({ message: 'No token provided' });
+  
+    const bearer = bearerHeader.split(' ');
+    const token = bearer[1];
+  
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
+      if (decoded.role !== 'admin') return res.status(403).json({ message: 'Not authorized' });
+      req.adminId = decoded.id;
+      next();
+    });
+  }
 
-  const createDefaultAdmin = async () => {
-    try {
-      const existingAdmin = await Admin.findOne({ username: 'admin' });
-      if (!existingAdmin) {
-        const hashedPassword = await bcrypt.hash('password', 10);
-        const admin = new Admin({ username: 'admin', password: hashedPassword });
-        await admin.save();
-        console.log('Default admin user created: admin');
-      } else {
-        console.log('Admin user already exists');
-      }
-    } catch (error) {
-      console.error('Error creating default admin:', error);
-    }
-  };
-  createDefaultAdmin(); // Call the function when the server starts
 
 app.use('/api/timesheet', verifyToken, timesheetRoutes);
 app.use('/api/auth', authRoutes);
@@ -92,11 +90,25 @@ app.get('/admin', (req, res) => {
 });
 
 app.get('/admin/dashboard', (req, res) => {
-  if (!req.session.isAdminAuthenticated) {
-    return res.redirect('/admin');
-  }
   res.render('admin-dashboard', { timesheets: [] });
 });
+
+
+// Create default admin user
+const createDefaultAdmin = async () => {
+    try {
+      const existingAdmin = await Admin.findOne({ username: 'admin' });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('password', 10);
+        const admin = new Admin({ username: 'admin', password: hashedPassword });
+        await admin.save();
+        console.log('Default admin user created');
+      }
+    } catch (error) {
+      console.error('Error creating default admin:', error);
+    }
+  };
+  createDefaultAdmin();
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
