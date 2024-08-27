@@ -4,6 +4,7 @@ const Admin = require('../models/AdminT');
 const TimeEntry = require('../models/TimeEntry');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const verifyAdminToken = require('../middleware/verifyAdminToken');
 
 // Admin login
 router.post('/login', async (req, res) => {
@@ -26,8 +27,8 @@ router.post('/login', async (req, res) => {
 });
 
 // Get all timesheets
-router.get('/timesheets', async (req, res) => {
-  try {
+router.get('/timesheets', verifyAdminToken, async (req, res) => {
+    try {
     const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
     res.json(timesheets);
   } catch (error) {
@@ -37,8 +38,8 @@ router.get('/timesheets', async (req, res) => {
 });
 
 // Update timesheet status
-router.put('/timesheet/:id', async (req, res) => {
-  try {
+router.put('/timesheet/:id', verifyAdminToken, async (req, res) => {
+    try {
     const { id } = req.params;
     const { status } = req.body;
     const timesheet = await TimeEntry.findByIdAndUpdate(id, { status }, { new: true });
@@ -48,5 +49,10 @@ router.put('/timesheet/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+// Add a logout route
+router.post('/logout', verifyAdminToken, (req, res) => {
+    res.json({ message: 'Logged out successfully' });
+  });
+
 
 module.exports = router;

@@ -1,16 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const timesheetsList = document.getElementById('timesheet-list');
-    const logoutBtn = document.getElementById('logout-btn');
-  
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('adminToken');
-      window.location.href = '/admin';
-    });
+    const timesheetsList = document.getElementById('timesheets-list');
+    const logoutButton = document.getElementById('logout-btn');
   
     async function fetchTimesheets() {
       try {
         const response = await fetch('/api/admin/timesheets', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          },
         });
   
         if (!response.ok) {
@@ -21,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTimesheets(timesheets);
       } catch (error) {
         console.error('Error fetching timesheets:', error);
-        timesheetsList.innerHTML = '<p>Error loading timesheets. Please try again later.</p>';
+        alert('Failed to fetch timesheets. Please try again.');
       }
     }
   
@@ -59,6 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Failed to update timesheet status. Please try again.');
       }
     }
+  
+    logoutButton.addEventListener('click', async () => {
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          },
+        });
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin';
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Failed to logout. Please try again.');
+      }
+    });
   
     fetchTimesheets();
   
