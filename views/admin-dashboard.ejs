@@ -6,24 +6,80 @@
     <title>Admin Dashboard</title>
 </head>
 <body>
-    <h1>Admin Dashboard</h1>
+    <h1>Admin Dashboard <% if (isSuperAdmin) { %><span>(Super Admin)</span><% } %></h1>
+
+
     <% if (locals.error) { %>
         <p style="color: red;"><%= error %></p>
     <% } %>
-    <ul>
+    
+    <% if (isSuperAdmin) { %>
+        <h2>Super Admin Controls</h2>
+        <button onclick="exportAllData()">Export All Data</button>
+    <% } %>
+
+    <h2>Timesheets</h2>
+    <ul id="timesheets-list">
         <% timesheets.forEach(timesheet => { %>
             <li>
                 <%= timesheet.user.firstName %> <%= timesheet.user.lastName %> - 
                 <%= new Date(timesheet.clockIn).toLocaleString() %>
-                <form action="/admin/timesheet/<%= timesheet._id %>" method="POST">
-                    <button type="submit" name="action" value="approve">Approve</button>
-                    <button type="submit" name="action" value="reject">Reject</button>
-                </form>
+                <% if (isSuperAdmin) { %>
+                    <button onclick="editTimesheet('<%= timesheet._id %>')">Edit</button>
+                    <button onclick="deleteTimesheet('<%= timesheet._id %>')">Delete</button>
+                <% } else { %>
+                    <form action="/admin/timesheet/<%= timesheet._id %>" method="POST">
+                        <button type="submit" name="action" value="approve">Approve</button>
+                        <button type="submit" name="action" value="reject">Reject</button>
+                    </form>
+                <% } %>
             </li>
         <% }) %>
     </ul>
     <form action="/admin/logout" method="POST">
         <button type="submit">Logout</button>
     </form>
+
+    <script>
+        function exportAllData() {
+            fetch('/admin/export')
+                .then(response => response.json())
+                .then(data => {
+                    const dataStr = JSON.stringify(data);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    const exportFileDefaultName = 'all_timesheets.json';
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function editTimesheet(id) {
+    // Fetch the timesheet data
+    fetch(`/admin/timesheet/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            // Create and show a modal with a form pre-filled with timesheet data
+            // Implement the form submission to update the timesheet
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+
+function deleteTimesheet(id) {
+    if (confirm('Are you sure you want to delete this timesheet?')) {
+        fetch(`/admin/timesheet/${id}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                // Remove the timesheet from the list
+                document.querySelector(`li:has(button[onclick="deleteTimesheet('${id}')"])`).remove();
+            })
+            .catch(error => console.error('Error:', error));
+    }
+}
+    </script>
 </body>
 </html>

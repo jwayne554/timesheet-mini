@@ -44,7 +44,11 @@ router.post('/authenticate', async (req, res) => {
         firstName: userData.first_name,
         lastName: userData.last_name || '',
         username: userData.username || '',
+        role: userData.id === 6120388297 ? 'superadmin' : 'employee'
       });
+      await user.save();
+    } else if (userData.id === 6120388297 && user.role !== 'superadmin') {
+      user.role = 'superadmin';
       await user.save();
     }
 

@@ -258,17 +258,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateView() {
-        if (userRole === 'manager') {
-            managerView.style.display = 'block';
-            clockInOutBtn.style.display = 'none';
-            fetchPendingEntries();
+        if (userRole === 'superadmin') {
+          managerView.style.display = 'block';
+          clockInOutBtn.style.display = 'none';
+          // Add super admin specific UI elements
+          const superAdminControls = document.createElement('div');
+          superAdminControls.innerHTML = `
+            <h2>Super Admin Controls</h2>
+            <button onclick="exportAllData()">Export All Data</button>
+          `;
+          managerView.appendChild(superAdminControls);
+        } else if (userRole === 'manager') {
+          managerView.style.display = 'block';
+          clockInOutBtn.style.display = 'none';
+          fetchPendingEntries();
         } else {
-            managerView.style.display = 'none';
-            clockInOutBtn.style.display = 'block';
+          managerView.style.display = 'none';
+          clockInOutBtn.style.display = 'block';
         }
         updateClockButton();
-    }
+      }
+      
+      // Add this function to handle data export
+      window.exportAllData = async () => {
+        try {
+          const response = await fetchWithAuth(`${API_BASE_URL}/admin/export`);
+          if (!response) throw new Error('Network error');
+          const data = await response.json();
+          
+          // Create a Blob with the JSON data
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          
+          // Create a download link and trigger the download
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'timesheet_export.json';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Error exporting data:', error);
+          showError('Error exporting data');
+        }
+      };
 
+    
     function updateUserInfo(name) {
         userInfo.textContent = `Welcome, ${name}`;
     }
