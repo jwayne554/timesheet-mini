@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const Admin = require('./models/Admin'); // Adjust path if necessary
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -47,6 +48,22 @@ function verifyToken(req, res, next) {
       next();
     });
   }
+  const createDefaultAdmin = async () => {
+    try {
+      const existingAdmin = await Admin.findOne({ username: 'admin' });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('password', 10);
+        const admin = new Admin({ username: 'admin', password: hashedPassword });
+        await admin.save();
+        console.log('Default admin user created: admin');
+      } else {
+        console.log('Admin user already exists');
+      }
+    } catch (error) {
+      console.error('Error creating default admin:', error);
+    }
+  };
+  createDefaultAdmin(); // Call the function when the server starts
 
 // Apply verifyToken middleware to protected routes
 app.use('/api/timesheet', verifyToken, timesheetRoutes);

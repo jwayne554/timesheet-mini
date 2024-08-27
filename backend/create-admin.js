@@ -1,28 +1,24 @@
-require('dotenv').config(); // Make sure this is at the top
 const mongoose = require('mongoose');
-const Admin = require('./models/Admin');
+const Admin = require('./models/Admin'); // Adjust path if necessary
+const bcrypt = require('bcrypt');
 
-const MONGODB_URI = process.env.MONGODB_URI; // Make sure this is in your .env file
+mongoose.connect('your_mongodb_connection_string', { useNewUrlParser: true, useUnifiedTopology: true });
 
-async function createAdminAccount() {
-    try {
-        await mongoose.connect(MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+const createAdmin = async () => {
+  const username = 'admin';
+  const password = 'password';
+  const existingAdmin = await Admin.findOne({ username });
 
-        const admin = new Admin({
-            username: 'admin',
-            password: 'password' // Replace with a strong password
-        });
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = new Admin({ username, password: hashedPassword });
+    await admin.save();
+    console.log('Admin user created successfully');
+  } else {
+    console.log('Admin user already exists');
+  }
 
-        await admin.save();
-        console.log('Admin account created successfully');
-    } catch (error) {
-        console.error('Error creating admin account:', error);
-    } finally {
-        await mongoose.connection.close();
-    }
-}
+  mongoose.connection.close();
+};
 
-createAdminAccount();
+createAdmin();
