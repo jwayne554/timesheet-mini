@@ -8,13 +8,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorElement = document.getElementById('error-message');
     const timeEntriesList = document.getElementById('time-entries-list');
     const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api';
-
+    const timerDisplay = document.getElementById('timer');
+   
+    let activeSession = null;
     let userRole = localStorage.getItem('userRole');
     let isClockedIn = false;
 
     if (tg) {
         tg.expand();
     }
+
+    async function checkClockInStatus() {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/status`);
+            if (!response) throw new Error('Network error');
+            const data = await response.json();
+            if (data.isClockedIn) {
+                activeSession = data.activeSession;
+                updateUIForActiveSession();
+            } else {
+                updateUIForClockIn();
+            }
+        } catch (error) {
+            console.error('Error checking clock-in status:', error);
+            showError('Error checking clock-in status');
+        }
+    }
+    function updateUIForActiveSession() {
+        clockInOutBtn.textContent = 'Clock Out';
+        clockInOutBtn.onclick = clockOut;
+        clockInOutBtn.disabled = false;
+        if (timerDisplay) {
+            startTimer(new Date(activeSession.clockIn).getTime());
+        }
+    }
+
+    function updateUIForClockIn() {
+        clockInOutBtn.textContent = 'Clock In';
+        clockInOutBtn.onclick = clockIn;
+        clockInOutBtn.disabled = false;
+        if (timerDisplay) {
+            timerDisplay.textContent = '00:00:00';
+        }
+    }
+
 
     async function fetchWithAuth(url, options = {}) {
         let token = localStorage.getItem('token');
@@ -101,12 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Clock-in failed');
-            localStorage.setItem('startTime', new Date().getTime());
+
+            activeSession = data.timeEntry;
             showMessage('Clocked in successfully');
-            isClockedIn = true;
-            updateClockButton();
-            // Redirect to timer page or start timer
-            window.location.href = 'timer.html';
+            updateUIForActiveSession();
         } catch (error) {
             console.error('Clock-in error:', error);
             showError(error.message);
@@ -123,12 +158,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(data.message || 'Clock-out failed');
 
             showMessage('Clocked out successfully');
-            isClockedIn = false;
-            updateClockButton();
+            updateUIForClockIn();
+            fetchTimeEntries();
         } catch (error) {
             console.error('Clock-out error:', error);
             showError(error.message);
         }
+    }
+    function startTimer(startTime) {
+        let timerInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const elapsed = now - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            timerDisplay.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }, 1000);
+    }
+
+    function pad(number) {
+        return number.toString().padStart(2, '0');
     }
 
     async function fetchTimeEntries() {
@@ -277,10 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         updateUserInfo(localStorage.getItem('userName') || 'User');
+        await checkClockInStatus();
         fetchTimeEntries();
     }
-
-    clockInOutBtn.addEventListener('click', clockIn);
 
     init();
 });

@@ -149,12 +149,16 @@ router.get('/status', async (req, res) => {
       }
   
       const activeEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
-      res.json({ isClockedIn: !!activeEntry });
+      res.json({ 
+        isClockedIn: !!activeEntry,
+        activeSession: activeEntry
+      });
     } catch (error) {
       console.error('Error checking clock-in status:', error);
       res.status(500).json({ message: 'Server error', error: error.message });
     }
   });
+  
   
 
 module.exports = router;
