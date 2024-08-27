@@ -4,6 +4,7 @@ const Admin = require('./models/AdminT'); // Adjust path if necessary
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const timesheetRoutes = require('./routes/timesheet');
