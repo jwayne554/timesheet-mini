@@ -54,7 +54,7 @@ function verifyToken(req, res, next) {
       const existingAdmin = await Admin.findOne({ username: 'admin' });
       if (!existingAdmin) {
         const hashedPassword = await bcrypt.hash('password', 10);
-        const admin = new Admin({ username: 'admin', password: hashedPassword });
+        const admin = new Admin({ username: 'admin', password: 'password' });
         await admin.save();
         console.log('Default admin user created: admin');
       } else {
