@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerDisplay = document.getElementById('timer');
    
     let activeSession = null;
+    let timerInterval = null;
     let userRole = localStorage.getItem('userRole');
     let isClockedIn = false;
 
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Error checking clock-in status');
         }
     }
+
     function updateUIForActiveSession() {
         clockInOutBtn.textContent = 'Clock Out';
         clockInOutBtn.onclick = clockOut;
@@ -97,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('token', data.token);
             localStorage.setItem('userId', data.user.id);
             localStorage.setItem('userRole', data.user.role);
+            localStorage.setItem('userName', data.user.name); // Store the user's name
             userRole = data.user.role;
             updateUserInfo(data.user.name);
             return data.token;
@@ -105,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Authentication failed. Please try again.');
             return null;
         }
+    }
+
+    function updateUserInfo(name) {
+        userInfo.textContent = `Welcome, ${name}`;
     }
 
     async function refreshToken() {
@@ -158,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(data.message || 'Clock-out failed');
 
             showMessage('Clocked out successfully');
+            stopTimer(); // Stop the timer immediately
             updateUIForClockIn();
             fetchTimeEntries();
         } catch (error) {
@@ -165,8 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(error.message);
         }
     }
+
     function startTimer(startTime) {
-        let timerInterval = setInterval(() => {
+        stopTimer(); // Clear any existing timer
+        timerInterval = setInterval(() => {
             const now = new Date().getTime();
             const elapsed = now - startTime;
             const hours = Math.floor(elapsed / 3600000);
@@ -174,6 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const seconds = Math.floor((elapsed % 60000) / 1000);
             timerDisplay.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
     }
 
     function pad(number) {
@@ -323,9 +340,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError('Authentication failed. Please try again.');
                 return;
             }
+        } else {
+            // If token exists, try to get the user name from localStorage
+            const userName = localStorage.getItem('userName');
+            if (userName) {
+                updateUserInfo(userName);
+            } else {
+                // If userName is not in localStorage, you might want to fetch it from the server
+                // or re-authenticate the user
+                await authenticate();
+            }
         }
         
-        updateUserInfo(localStorage.getItem('userName') || 'User');
         await checkClockInStatus();
         fetchTimeEntries();
     }
