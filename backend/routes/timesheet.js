@@ -141,4 +141,20 @@ router.get('/total-hours', async (req, res) => {
   }
 });
 
+router.get('/status', async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const activeEntry = await TimeEntry.findOne({ user: user._id, clockOut: null });
+      res.json({ isClockedIn: !!activeEntry });
+    } catch (error) {
+      console.error('Error checking clock-in status:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  });
+  
+
 module.exports = router;

@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingEntriesList = document.getElementById('pending-entries');
     const messageElement = document.getElementById('message');
     const errorElement = document.getElementById('error-message');
+    const timeEntriesList = document.getElementById('time-entries-list');
     const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api';
 
     let userRole = localStorage.getItem('userRole');
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response) throw new Error('Network error');
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Clock-in failed');
-
+            localStorage.setItem('startTime', new Date().getTime());
             showMessage('Clocked in successfully');
             isClockedIn = true;
             updateClockButton();
@@ -129,6 +130,30 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(error.message);
         }
     }
+
+    async function fetchTimeEntries() {
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/my-entries`);
+            if (!response) throw new Error('Network error');
+            if (!response.ok) throw new Error('Failed to fetch time entries');
+            const entries = await response.json();
+            renderTimeEntries(entries);
+        } catch (error) {
+            console.error('Error fetching time entries:', error);
+            showError('Error fetching time entries');
+        }
+    }
+
+    function renderTimeEntries(entries) {
+        timeEntriesList.innerHTML = entries.map(entry => `
+            <li>
+                Clock In: ${new Date(entry.clockIn).toLocaleString()}
+                Clock Out: ${entry.clockOut ? new Date(entry.clockOut).toLocaleString() : 'Not clocked out'}
+                Duration: ${entry.duration ? (entry.duration / 3600).toFixed(2) + ' hours' : 'N/A'}
+            </li>
+        `).join('');
+    }
+
 
     async function reviewEntry(entryId, status) {
         try {
@@ -251,36 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Check if user is clocked in
-        try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/status`);
-            if (response && response.ok) {
-                const data = await response.json();
-                isClockedIn = data.isClockedIn;
-            }
-        } catch (error) {
-            console.error('Error fetching clock-in status:', error);
-        }
-
-        updateView();
+        updateUserInfo(localStorage.getItem('userName') || 'User');
+        fetchTimeEntries();
     }
 
-    clockInOutBtn.addEventListener('click', async () => {
-        if (isClockedIn) {
-            await clockOut();
-        } else {
-            await clockIn();
-        }
-    });
+    clockInOutBtn.addEventListener('click', clockIn);
 
     init();
-
-    // Set up polling for real-time updates of pending entries
-    if (userRole === 'manager') {
-        setInterval(fetchPendingEntries, 30000); // Fetch every 30 seconds
-    }
-
-    // Expose functions globally for onclick handlers
-    window.reviewEntry = reviewEntry;
-    window.processPayment = processPayment;
 });

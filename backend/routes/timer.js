@@ -66,14 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startTimer() {
         if (!startTime) {
-            console.error('No start time found');
-            showError('Error: No start time found. Please clock in again.');
-            return;
+            startTime = new Date().getTime();
+            localStorage.setItem('startTime', startTime);
         }
 
         function updateTimer() {
             const now = new Date().getTime();
-            const elapsed = now - new Date(startTime).getTime();
+            const elapsed = now - startTime;
             const hours = Math.floor(elapsed / 3600000);
             const minutes = Math.floor((elapsed % 3600000) / 60000);
             const seconds = Math.floor((elapsed % 60000) / 1000);
@@ -84,36 +83,36 @@ document.addEventListener('DOMContentLoaded', () => {
         timerInterval = setInterval(updateTimer, 1000);
     }
 
+
     function pad(number) {
         return number.toString().padStart(2, '0');
     }
 
     async function clockOut() {
         try {
-          showLoading(true);
-          const response = await fetchWithAuth(`${API_BASE_URL}/clock-out`, {
-            method: 'POST',
-          });
-      
-          if (!response) throw new Error('Network error');
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Clock-out failed');
-      
-          clearInterval(timerInterval);
-          localStorage.removeItem('startTime');
-          showMessage(data.message);
-      
-          // Redirect back to the main page
-          setTimeout(() => {
-            window.location.href = 'index.html';
-          }, 2000);
+            showLoading(true);
+            const response = await fetchWithAuth(`${API_BASE_URL}/clock-out`, {
+                method: 'POST',
+            });
+
+            if (!response) throw new Error('Network error');
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Clock-out failed');
+
+            clearInterval(timerInterval);
+            localStorage.removeItem('startTime');
+            showMessage(data.message);
+
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
         } catch (error) {
-          console.error('Clock-out error:', error);
-          showError(error.message || 'An error occurred. Please try again.');
+            console.error('Clock-out error:', error);
+            showError(error.message || 'An error occurred. Please try again.');
         } finally {
-          showLoading(false);
+            showLoading(false);
         }
-      }
+    }
 
     function showMessage(message) {
         const messageElement = document.getElementById('message');
@@ -142,11 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function init() {
         updateUserInfo();
-        if (!startTime) {
-            showError('No active session found. Please clock in first.');
-            clockOutBtn.style.display = 'none';
-            return;
-        }
         startTimer();
         clockOutBtn.style.display = 'block';
     }
@@ -154,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clockOutBtn.addEventListener('click', clockOut);
 
     init();
+});
 
     // Handle page visibility changes
     document.addEventListener('visibilitychange', () => {
@@ -163,4 +158,3 @@ document.addEventListener('DOMContentLoaded', () => {
             startTimer();
         }
     });
-});
