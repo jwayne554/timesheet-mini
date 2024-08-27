@@ -8,16 +8,15 @@
 <body>
     <div id="admin-login">
         <h1>Admin Login</h1>
-        <% if (error) { %>
+        <% if (locals.error) { %>
             <p style="color: red;"><%= error %></p>
         <% } %>
-        <form id="admin-login-form" action="/api/admin/login" method="POST">
+        <form id="admin-login-form" action="/admin/login" method="POST">
             <input type="text" id="username" name="username" required>
             <input type="password" id="password" name="password" required>
             <button type="submit">Login</button>
         </form>
-        <div id="error-message"></div>
     </div>
-    <script src="/admin-login.js"></script>
 </body>
 </html>
+

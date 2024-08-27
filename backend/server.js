@@ -35,6 +35,11 @@ app.use(session({
   saveUninitialized: true
 }));
 
+// Serve static files
+app.use(express.static('public'));
+
+// Admin routes
+app.use('/admin', adminRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {

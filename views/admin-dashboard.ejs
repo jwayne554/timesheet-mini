@@ -7,17 +7,23 @@
 </head>
 <body>
     <h1>Admin Dashboard</h1>
+    <% if (locals.error) { %>
+        <p style="color: red;"><%= error %></p>
+    <% } %>
     <ul>
         <% timesheets.forEach(timesheet => { %>
             <li>
                 <%= timesheet.user.firstName %> <%= timesheet.user.lastName %> - 
                 <%= new Date(timesheet.clockIn).toLocaleString() %>
-                <form action="/api/admin/timesheet/<%= timesheet._id %>" method="POST">
+                <form action="/admin/timesheet/<%= timesheet._id %>" method="POST">
                     <button type="submit" name="action" value="approve">Approve</button>
                     <button type="submit" name="action" value="reject">Reject</button>
                 </form>
             </li>
         <% }) %>
     </ul>
+    <form action="/admin/logout" method="POST">
+        <button type="submit">Logout</button>
+    </form>
 </body>
 </html>
