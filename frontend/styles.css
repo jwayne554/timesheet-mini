@@ -1,92 +1,106 @@
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 20px;
-    background-color: #f0f2f5;
-    color: #2e3d49;
-  }
-  
-  #app {
+    padding: 0;
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+#app {
     max-width: 600px;
     margin: 0 auto;
-    background-color: white;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  h1, h2 {
-    color: #0088cc;
-  }
-  
-  button {
-    background-color: #0088cc;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.timer-circle {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #232323, #1c1c1c);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#timer {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+#status {
+    font-size: 14px;
+    color: #a0a0a0;
+}
+
+.action-button {
+    background-color: #8e44ad;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 25px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
-  }
-  
-  button:hover {
-    background-color: #006699;
-  }
-  
-  #user-info {
-    margin-bottom: 20px;
-    font-weight: bold;
-  }
-  
-  #pending-entries {
+    transition: background-color 0.3s ease;
+}
+
+.action-button:hover {
+    background-color: #9b59b6;
+}
+
+#time-entries {
+    margin-top: 40px;
+}
+
+#time-entries h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+#time-entries-list {
     list-style-type: none;
     padding: 0;
-  }
-  
-  #pending-entries li {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    padding: 10px;
+}
+
+#time-entries-list li {
+    background-color: #2c2c2c;
+    padding: 15px;
     margin-bottom: 10px;
-    border-radius: 4px;
-  }
-  
-  .entry-actions {
-    margin-top: 10px;
-  }
-  
-  .approve-btn {
-    background-color: #28a745;
-  }
-  
-  .reject-btn {
-    background-color: #dc3545;
-  }
-  
-  .payment-input {
-    margin-top: 10px;
-  }
-  
-  .payment-input input {
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .error-message {
-    color: #dc3545;
-    margin-top: 10px;
-  }
-  
-  #timer {
-    font-size: 48px;
-    font-weight: bold;
-    margin: 20px 0;
+    border-radius: 8px;
+}
+
+.message, .error-message {
+    padding: 10px;
+    margin-top: 20px;
+    border-radius: 5px;
     text-align: center;
-  }
-  
-  #clock-out-btn {
-    display: block;
-    margin: 20px auto;
-  }
+}
+
+.message {
+    background-color: #27ae60;
+}
+
+.error-message {
+    background-color: #c0392b;
+}

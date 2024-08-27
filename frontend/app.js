@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const timeEntriesList = document.getElementById('time-entries-list');
     const API_BASE_URL = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/api';
     const timerDisplay = document.getElementById('timer');
-   
+    const statusDisplay = document.getElementById('status');
+
     let activeSession = null;
     let timerInterval = null;
     let userRole = localStorage.getItem('userRole');
@@ -39,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUIForActiveSession() {
         clockInOutBtn.textContent = 'Clock Out';
         clockInOutBtn.onclick = clockOut;
-        clockInOutBtn.disabled = false;
+        clockInOutBtn.classList.add('active');
+        statusDisplay.textContent = 'Currently working';
         if (timerDisplay) {
             startTimer(new Date(activeSession.clockIn).getTime());
         }
@@ -48,10 +50,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUIForClockIn() {
         clockInOutBtn.textContent = 'Clock In';
         clockInOutBtn.onclick = clockIn;
-        clockInOutBtn.disabled = false;
+        clockInOutBtn.classList.remove('active');
+        statusDisplay.textContent = 'Not clocked in';
         if (timerDisplay) {
             timerDisplay.textContent = '00:00:00';
         }
+    }
+    function renderTimeEntries(entries) {
+        const timeEntriesList = document.getElementById('time-entries-list');
+        timeEntriesList.innerHTML = entries.map(entry => `
+            <li>
+                <div>${new Date(entry.clockIn).toLocaleDateString()}</div>
+                <div>${formatDuration(entry.duration)}</div>
+            </li>
+        `).join('');
+    }
+
+    function formatDuration(duration) {
+        const hours = Math.floor(duration / 3600);
+        const minutes = Math.floor((duration % 3600) / 60);
+        return `${hours}h ${minutes}m`;
     }
 
 
