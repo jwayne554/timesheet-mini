@@ -12,8 +12,44 @@ const PORT = process.env.PORT || 5001;
 const jwtSecret = process.env.JWT_SECRET;
 console.log('JWT Secret:', jwtSecret); // Temporary for debugging
 const adminRoutes = require('./routes/admin');
+const session = require('express-session');
 
-app.use('/api/admin', adminRoutes);
+app.set('view engine', 'ejs');
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true
+}));
+
+// Admin routes
+app.get('/admin', (req, res) => {
+    res.render('admin-login', { error: null });
+  });
+  
+  app.post('/admin/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+      // Verify admin credentials (use your existing logic)
+      if (username === 'admin' && password === 'password') {
+        req.session.isAdminAuthenticated = true;
+        res.redirect('/admin/dashboard');
+      } else {
+        res.render('admin-login', { error: 'Invalid credentials' });
+      }
+    } catch (error) {
+      res.render('admin-login', { error: 'Server error' });
+    }
+  });
+  
+  app.get('/admin/dashboard', (req, res) => {
+    if (!req.session.isAdminAuthenticated) {
+      return res.redirect('/admin');
+    }
+    // Fetch timesheets and render dashboard
+    res.render('admin-dashboard', { timesheets: [] }); // Implement timesheet fetching
+  });
+  
 // Enhanced CORS configuration
 app.use(cors({
   origin: ['https://jwayne554.github.io', 'https://web.telegram.org'],
