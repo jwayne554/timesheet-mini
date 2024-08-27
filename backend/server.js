@@ -10,7 +10,8 @@ const authRoutes = require('./routes/auth');
 const PORT = process.env.PORT || 5001;
 const jwtSecret = process.env.JWT_SECRET;
 console.log('JWT Secret:', jwtSecret); // Temporary for debugging
-
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
 // Enhanced CORS configuration
 app.use(cors({
   origin: ['https://jwayne554.github.io', 'https://web.telegram.org'],

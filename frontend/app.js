@@ -277,6 +277,24 @@ document.addEventListener('DOMContentLoaded', () => {
         clockInOutBtn.textContent = isClockedIn ? 'Clock Out' : 'Clock In';
     }
 
+    async function checkTimesheetStatus() {
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/timesheet/status`);
+        if (!response) throw new Error('Network error');
+        const data = await response.json();
+        if (data.status === 'approved') {
+            showMessage('Your timesheet has been approved!');
+        } else if (data.status === 'declined') {
+            showError('Your timesheet has been declined.');
+        }
+    } catch (error) {
+        console.error('Error checking timesheet status:', error);
+        }
+    }   
+
+// Call this function periodically or after each clock-out
+setInterval(checkTimesheetStatus, 60000); // Check every minute
+
     async function processPayment(entryId) {
         const amountInput = document.getElementById(`payment-amount-${entryId}`);
         const amount = parseFloat(amountInput.value);
