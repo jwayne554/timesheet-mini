@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Admin = require('../models/Admin');
+const Admin = require('../models/AdminT');
 const TimeEntry = require('../models/TimeEntry');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Admin login

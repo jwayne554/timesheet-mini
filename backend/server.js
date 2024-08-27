@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const Admin = require('./models/Admin'); // Adjust path if necessary
+const Admin = require('./models/AdminT'); // Adjust path if necessary
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
