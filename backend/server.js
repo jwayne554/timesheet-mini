@@ -99,16 +99,20 @@ app.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
       const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
       const isSuperAdmin = req.user.role === 'superadmin';
 
-      // This renders the "admin-dashboard.ejs" file located in the "views" directory
+      // Log information about the user trying to access the dashboard
+      console.log(`Rendering admin dashboard. User ID: ${req.adminId}, Role: ${req.adminRole}`);
+
+      // Render the admin-dashboard.ejs file located in the views directory
       res.render('admin-dashboard', { 
           timesheets, 
           isSuperAdmin 
       });
   } catch (error) {
       console.error('Error rendering admin dashboard:', error);
-      res.status(500).send('Server error');
+      res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
 
 
 
