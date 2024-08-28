@@ -31,11 +31,21 @@
         <div id="message" class="message"></div>
         <div id="error-message" class="error-message"></div>
     </div>
-    <div id="admin-link">
-        <a href="admin-login.html">Admin Login</a>
+    
+    <!-- Superadmin-specific link -->
+    <div id="admin-link" style="display: none;">
+        <a href="admin-dashboard.html">Admin Dashboard</a>
     </div>
     
-    
     <script src="app.js"></script>
+    <script>
+        // Check if the user is a superadmin and show the admin dashboard link if true
+        document.addEventListener('DOMContentLoaded', () => {
+            const isSuperAdmin = JSON.parse(localStorage.getItem('isSuperAdmin'));
+            if (isSuperAdmin) {
+                document.getElementById('admin-link').style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>

@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
         },
       });
 
+      if (response.status === 403) {
+        alert('Access denied. You do not have permission to view this data.');
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch timesheets');
       }
@@ -52,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ action: status }),
       });
 
+      if (response.status === 403) {
+        alert('Access denied. You do not have permission to perform this action.');
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to update timesheet status');
       }
@@ -64,8 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.editTimesheet = async (id) => {
-    // Implement edit functionality here
     console.log('Editing timesheet', id);
+    // Implement edit functionality here
   };
 
   window.deleteTimesheet = async (id) => {
@@ -77,6 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
           },
         });
+
+        if (response.status === 403) {
+          alert('Access denied. You do not have permission to delete this timesheet.');
+          return;
+        }
 
         if (!response.ok) {
           throw new Error('Failed to delete timesheet');

@@ -110,14 +110,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({ initData: tg.initData }),
             });
-
+    
             if (!response.ok) throw new Error('Authentication failed');
             
             const data = await response.json();
             localStorage.setItem('token', data.token);
             localStorage.setItem('userId', data.user.id);
             localStorage.setItem('userRole', data.user.role);
-            localStorage.setItem('userName', data.user.name); // Store the user's name
+            localStorage.setItem('userName', data.user.name);
+    
+            // Store superadmin status
+            const isSuperAdmin = data.user.role === 'superadmin';
+            localStorage.setItem('isSuperAdmin', isSuperAdmin);
+
             userRole = data.user.role;
             updateUserInfo(data.user.name);
             return data.token;
@@ -127,6 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
+    
+
+
 
     function updateUserInfo(name) {
         userInfo.textContent = `Welcome, ${name}`;
@@ -258,26 +266,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateView() {
-        if (userRole === 'superadmin') {
-          managerView.style.display = 'block';
-          clockInOutBtn.style.display = 'none';
-          // Add super admin specific UI elements
-          const superAdminControls = document.createElement('div');
-          superAdminControls.innerHTML = `
-            <h2>Super Admin Controls</h2>
-            <button onclick="exportAllData()">Export All Data</button>
-          `;
-          managerView.appendChild(superAdminControls);
+        const isSuperAdmin = localStorage.getItem('isSuperAdmin') === 'true';
+        if (isSuperAdmin) {
+            managerView.style.display = 'block';
+            clockInOutBtn.style.display = 'none';
+            // Add super admin specific UI elements
+            const superAdminControls = document.createElement('div');
+            superAdminControls.innerHTML = `
+                <h2>Super Admin Controls</h2>
+                <button onclick="exportAllData()">Export All Data</button>
+            `;
+            managerView.appendChild(superAdminControls);
         } else if (userRole === 'manager') {
-          managerView.style.display = 'block';
-          clockInOutBtn.style.display = 'none';
-          fetchPendingEntries();
+            managerView.style.display = 'block';
+            clockInOutBtn.style.display = 'none';
+            fetchPendingEntries();
         } else {
-          managerView.style.display = 'none';
-          clockInOutBtn.style.display = 'block';
+            managerView.style.display = 'none';
+            clockInOutBtn.style.display = 'block';
         }
         updateClockButton();
-      }
+    }
+    
       
       // Add this function to handle data export
       window.exportAllData = async () => {
@@ -304,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
-    
+      
     function updateUserInfo(name) {
         userInfo.textContent = `Welcome, ${name}`;
     }
@@ -413,20 +423,18 @@ setInterval(checkTimesheetStatus, 60000); // Check every minute
                 return;
             }
         } else {
-            // If token exists, try to get the user name from localStorage
             const userName = localStorage.getItem('userName');
             if (userName) {
                 updateUserInfo(userName);
             } else {
-                // If userName is not in localStorage, you might want to fetch it from the server
-                // or re-authenticate the user
                 await authenticate();
             }
         }
         
         await checkClockInStatus();
         fetchTimeEntries();
-    }
+        updateView();  // Update the view after checking user role
+    }  
 
     init();
 });

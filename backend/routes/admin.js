@@ -42,6 +42,7 @@ router.get('/export', verifyAdminToken, isSuperAdmin, async (req, res) => {
 router.put('/timesheet/:id', verifyAdminToken, isSuperAdmin, async (req, res) => {
   try {
     const updatedTimesheet = await TimeEntry.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedTimesheet) return res.status(404).json({ message: 'Timesheet not found' });
     res.json(updatedTimesheet);
   } catch (error) {
     console.error('Edit timesheet error:', error);
@@ -52,7 +53,8 @@ router.put('/timesheet/:id', verifyAdminToken, isSuperAdmin, async (req, res) =>
 // Super Admin: Delete timesheet
 router.delete('/timesheet/:id', verifyAdminToken, isSuperAdmin, async (req, res) => {
   try {
-    await TimeEntry.findByIdAndDelete(req.params.id);
+    const deletedTimesheet = await TimeEntry.findByIdAndDelete(req.params.id);
+    if (!deletedTimesheet) return res.status(404).json({ message: 'Timesheet not found' });
     res.json({ message: 'Timesheet deleted successfully' });
   } catch (error) {
     console.error('Delete timesheet error:', error);
@@ -104,6 +106,7 @@ router.post('/timesheet/:id', verifyAdminToken, async (req, res) => {
     const status = action === 'approve' ? 'approved' : 'rejected';
 
     const updatedTimesheet = await TimeEntry.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedTimesheet) return res.status(404).json({ message: 'Timesheet not found' });
     res.json(updatedTimesheet);
   } catch (error) {
     console.error('Timesheet update error:', error);

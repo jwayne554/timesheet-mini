@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const SUPERADMIN_ID = process.env.SUPERADMIN_ID || '6120388297';  // Default to the current ID if not set
 
 // Function to validate Telegram's initData
 function validateTelegramWebAppData(initData) {
@@ -44,7 +45,7 @@ router.post('/authenticate', async (req, res) => {
         firstName: userData.first_name,
         lastName: userData.last_name || '',
         username: userData.username || '',
-        role: userData.id === 6120388297 ? 'superadmin' : 'employee'
+        role: userData.id === SUPERADMIN_ID ? 'superadmin' : 'employee'
       });
       await user.save();
     } else if (userData.id === 6120388297 && user.role !== 'superadmin') {

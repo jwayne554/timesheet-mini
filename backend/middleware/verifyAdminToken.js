@@ -9,9 +9,15 @@ function verifyAdminToken(req, res, next) {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
-    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') return res.status(403).json({ message: 'Not authorized' });
+
+    // Ensure only admin or superadmin can proceed
+    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized - Admins only' });
+    }
+
     req.adminId = decoded.id;
     req.adminRole = decoded.role;
+
     next();
   });
 }
