@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Admin = require('./models/AdminT');
+const TimeEntry = require('./models/TimeEntry');  // Make sure this is correctly imported
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -16,10 +17,11 @@ const PORT = process.env.PORT || 5001;
 const jwtSecret = process.env.JWT_SECRET;
 console.log('JWT Secret:', jwtSecret); // Temporary for debugging
 
-
+// Set up view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Middleware configurations
 app.use(cors({
   origin: ['https://jwayne554.github.io', 'https://web.telegram.org'],
   credentials: true,
@@ -66,6 +68,7 @@ function verifyToken(req, res, next) {
       next();
     });
   }
+
   function verifyAdminToken(req, res, next) {
     const bearerHeader = req.headers['authorization'];
     if (!bearerHeader) return res.status(403).json({ message: 'No token provided' });
@@ -132,6 +135,7 @@ const createDefaultAdmin = async () => {
   };
   createDefaultAdmin();
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });

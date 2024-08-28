@@ -6,7 +6,6 @@ const timeEntrySchema = new mongoose.Schema({
     clockOut: { type: Date },
     duration: { type: Number },
     status: { type: String, enum: ['pending', 'approved', 'declined'], default: 'pending' },
-  });
-   
+});
 
 module.exports = mongoose.model('TimeEntry', timeEntrySchema);
