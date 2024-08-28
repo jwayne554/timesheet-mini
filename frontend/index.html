@@ -34,7 +34,7 @@
     
     <!-- Superadmin-specific link -->
     <div id="admin-link" style="display: none;">
-        <a href="https://timesheet-mini-19fe8d8112f6.herokuapp.com/admin-dashboard">SuperAdmin</a>
+        <a id="adminDashboardLink" href="#">SuperAdmin</a>
     </div>
     
     <script src="app.js"></script>
@@ -42,8 +42,42 @@
         // Check if the user is a superadmin and show the admin dashboard link if true
         document.addEventListener('DOMContentLoaded', () => {
             const isSuperAdmin = JSON.parse(localStorage.getItem('isSuperAdmin'));
+            const adminDashboardLink = document.getElementById('adminDashboardLink');
+
             if (isSuperAdmin) {
                 document.getElementById('admin-link').style.display = 'block';
+
+                // Handle click event to send token
+                adminDashboardLink.addEventListener('click', async (event) => {
+                    event.preventDefault(); // Prevent the default anchor behavior
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('No token found. Please login.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('https://timesheet-mini-19fe8d8112f6.herokuapp.com/admin-dashboard', {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        if (response.redirected) {
+                            // Redirect to the new URL if the response was a redirect
+                            window.location.href = response.url;
+                        } else if (response.status === 200) {
+                            // If the server responds correctly, navigate to the dashboard
+                            window.location.href = 'https://timesheet-mini-19fe8d8112f6.herokuapp.com/admin-dashboard';
+                        } else {
+                            alert('Failed to access the dashboard: ' + (await response.text()));
+                        }
+                    } catch (error) {
+                        console.error('Error accessing dashboard:', error);
+                        alert('Error accessing dashboard.');
+                    }
+                });
             }
         });
     </script>
