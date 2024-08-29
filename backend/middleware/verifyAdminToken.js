@@ -16,15 +16,14 @@ function verifyAdminToken(req, res, next) {
       return res.status(401).json({ message: 'Failed to authenticate token' });
     }
 
-    // Ensure only admin or superadmin can proceed
-    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
-      console.error(`Unauthorized role: ${decoded.role}`);
-      return res.status(403).json({ message: 'Not authorized - Admins only' });
+    // Ensure the decoded token has id and role
+    if (!decoded.id || !decoded.role) {
+      console.error('Decoded token is missing id or role:', decoded);
+      return res.status(401).json({ message: 'Invalid token' });
     }
 
-    req.adminId = decoded.id;
-    req.adminRole = decoded.role;
-    console.log(`Token verified. User ID: ${decoded.id}, Role: ${decoded.role}`);
+    req.user = { id: decoded.id, role: decoded.role }; // Use req.user to attach user data
+    console.log(`Token verified. User ID: ${req.user.id}, Role: ${req.user.role}`);
     next();
   });
 }
