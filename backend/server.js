@@ -97,7 +97,7 @@ app.get('/admin', (req, res) => {
   res.render('admin-login', { error: null });
 });
 
-pp.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
+app.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
   console.log('Headers:', req.headers);  // Add this line to inspect headers
   try {
       const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
