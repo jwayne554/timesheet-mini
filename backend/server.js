@@ -97,7 +97,8 @@ app.get('/admin', (req, res) => {
   res.render('admin-login', { error: null });
 });
 
-app.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
+pp.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
+  console.log('Headers:', req.headers);  // Add this line to inspect headers
   try {
       const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
       const isSuperAdmin = req.user.role === 'superadmin';
