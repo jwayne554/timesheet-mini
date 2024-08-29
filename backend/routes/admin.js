@@ -16,9 +16,12 @@ const isSuperAdmin = (req, res, next) => {
 
 // Admin dashboard
 router.get('/dashboard', verifyAdminToken, async (req, res) => {
+  console.log(`User accessing dashboard: ID = ${req.user.id}, Role = ${req.user.role}`);  // Log user info
+
   try {
     const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
     const isSuperAdmin = req.user.role === 'superadmin';
+    console.log('Superadmin status:', isSuperAdmin);  // Log whether the user is superadmin
 
     res.render('admin-dashboard', { timesheets, isSuperAdmin });
   } catch (error) {

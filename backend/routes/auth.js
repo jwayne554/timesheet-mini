@@ -32,6 +32,7 @@ router.post('/authenticate', async (req, res) => {
     const { initData } = req.body;
 
     if (!validateTelegramWebAppData(initData)) {
+      console.error('Invalid Telegram data');
       return res.status(401).json({ message: 'Invalid Telegram data' });
     }
 
@@ -48,16 +49,20 @@ router.post('/authenticate', async (req, res) => {
         role: userData.id === SUPERADMIN_ID ? 'superadmin' : 'employee'
       });
       await user.save();
-    } else if (userData.id === 6120388297 && user.role !== 'superadmin') {
+    } else if (userData.id === SUPERADMIN_ID && user.role !== 'superadmin') {
       user.role = 'superadmin';
       await user.save();
     }
+
+    console.log('User role assigned:', user.role);  // Log the role assigned to the user
 
     const token = jwt.sign(
       { id: user._id, telegramId: user.telegramId, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    console.log('Generated JWT token:', token);  // Log the generated token
 
     res.json({
       token,
@@ -72,6 +77,7 @@ router.post('/authenticate', async (req, res) => {
     res.status(500).json({ message: 'Error during authentication' });
   }
 });
+
 
 router.post('/refresh-token', (req, res) => {
   const { token } = req.body;

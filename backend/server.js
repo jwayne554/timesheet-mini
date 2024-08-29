@@ -98,18 +98,19 @@ app.get('/admin', (req, res) => {
 });
 
 app.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
-  console.log('Headers:', req.headers);  // Add this line to inspect headers
+  console.log(`Rendering admin dashboard. User ID: ${req.user.id}, Role: ${req.user.role}`);
+
+
+    // Ensure role is 'superadmin' before granting access
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Forbidden: You do not have access to this resource.' });
+  }
+
   try {
       const timesheets = await TimeEntry.find().populate('user', 'firstName lastName');
-      const isSuperAdmin = req.user.role === 'superadmin';
-
-      // Log information about the user trying to access the dashboard
-      console.log(`Rendering admin dashboard. User ID: ${req.user.id}, Role: ${req.user.role}`);
-
-      // Render the admin-dashboard.ejs file located in the views directory
       res.render('admin-dashboard', { 
           timesheets, 
-          isSuperAdmin 
+          isSuperAdmin: req.user.role === 'superadmin'
       });
   } catch (error) {
       console.error('Error rendering admin dashboard:', error);
