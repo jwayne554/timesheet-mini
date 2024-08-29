@@ -15,6 +15,8 @@ function verifyAdminToken(req, res, next) {
       console.error('Token verification failed:', err);
       return res.status(401).json({ message: 'Failed to authenticate token' });
     }
+    
+    console.log('Decoded token:', decoded); // Log the decoded token to inspect its contents
 
     // Ensure the decoded token has id and role
     if (!decoded.id || !decoded.role) {
