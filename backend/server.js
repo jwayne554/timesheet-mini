@@ -104,7 +104,7 @@ app.get('/admin-dashboard', verifyAdminToken, async (req, res) => {
       const isSuperAdmin = req.user.role === 'superadmin';
 
       // Log information about the user trying to access the dashboard
-      console.log(`Rendering admin dashboard. User ID: ${req.adminId}, Role: ${req.adminRole}`);
+      console.log(`Rendering admin dashboard. User ID: ${req.user.id}, Role: ${req.user.role}`);
 
       // Render the admin-dashboard.ejs file located in the views directory
       res.render('admin-dashboard', { 
