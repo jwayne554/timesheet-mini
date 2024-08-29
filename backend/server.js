@@ -19,7 +19,7 @@ console.log('JWT Secret:', jwtSecret); // Temporary for debugging
 
 // Set up view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, '../views'));
 
 // Middleware configurations
 app.use(cors({
