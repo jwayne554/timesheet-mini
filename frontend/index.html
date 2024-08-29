@@ -51,18 +51,20 @@
                 adminDashboardLink.addEventListener('click', async (event) => {
                     event.preventDefault(); // Prevent the default anchor behavior
                     const token = localStorage.getItem('token');
+                    console.log('Token:', token);  // Debugging line to verify token retrieval
                     if (!token) {
-                        alert('No token found. Please login.');
-                        return;
-                    }
+                    alert('No token found. Please login.');
+                    return;
+                }
 
-                    try {
-                        const response = await fetch('https://timesheet-mini-19fe8d8112f6.herokuapp.com/admin-dashboard', {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
+                try {
+                    const response = await fetch('https://timesheet-mini-19fe8d8112f6.herokuapp.com/admin-dashboard', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
 
                         if (response.redirected) {
                             // Redirect to the new URL if the response was a redirect
